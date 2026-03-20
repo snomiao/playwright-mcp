@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Playwright MCP Bridge",
-  "version": "0.0.68",
-  "description": "Share browser tabs with Playwright MCP server",
+  "name": "Playwright MCP Bridge (multi-tab)",
+  "version": "0.0.68.1",
+  "description": "Share browser tabs with Playwright MCP server (multi-tab fork: Playwright can open and control multiple tabs)",
   "permissions": [
     "debugger",
     "activeTab",
