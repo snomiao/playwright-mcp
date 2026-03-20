@@ -1,5 +1,5 @@
 {
-  "name": "@playwright/mcp",
+  "name": "@snomiao/playwright-mcp-multi-tab",
   "version": "0.0.68",
   "description": "Playwright Tools for MCP",
   "repository": {
@@ -37,6 +37,6 @@
     "playwright-core": "1.59.0-alpha-1773608981000"
   },
   "bin": {
-    "playwright-mcp": "cli.js"
+    "playwright-mcp-multi-tab": "cli.js"
   }
 }
