@@ -44,8 +44,8 @@ export class RelayConnection {
   private _tabPromise: Promise<void>;
   private _tabPromiseResolve!: () => void;
   private _closed = false;
-  private _multiTabMode = false;
-  private _allTabIds: Set<number> = new Set();
+  // Tabs opened by playwright (in addition to the initial _debuggee tab)
+  private _playwrightTabIds: Set<number> = new Set();
 
   onclose?: () => void;
 
@@ -82,36 +82,36 @@ export class RelayConnection {
     chrome.debugger.onEvent.removeListener(this._eventListener);
     chrome.debugger.onDetach.removeListener(this._detachListener);
     chrome.debugger.detach(this._debuggee).catch(() => {});
+    for (const tabId of this._playwrightTabIds)
+      chrome.debugger.detach({ tabId }).catch(() => {});
     this.onclose?.();
   }
 
   private _onDebuggerEvent(source: chrome.debugger.DebuggerSession, method: string, params: any): void {
-    if (this._multiTabMode) {
-      if (!this._allTabIds.has(source.tabId!))
-        return;
-    } else {
-      if (source.tabId !== this._debuggee.tabId)
-        return;
-    }
+    const isInitialTab = source.tabId === this._debuggee.tabId;
+    const isPlaywrightTab = this._playwrightTabIds.has(source.tabId!);
+    if (!isInitialTab && !isPlaywrightTab)
+      return;
     debugLog('Forwarding CDP event:', method, params);
-    const sessionId = source.sessionId;
+    // Include tabId for playwright-opened tabs so relay can route correctly.
+    // Initial tab uses the existing single-tab routing (no tabId needed).
+    const tabId = isPlaywrightTab ? source.tabId : undefined;
     this._sendMessage({
       method: 'forwardCDPEvent',
       params: {
-        sessionId,
+        sessionId: source.sessionId,
         method,
         params,
-        tabId: this._multiTabMode ? source.tabId : undefined,
+        tabId,
       },
     });
   }
 
   private _onDebuggerDetach(source: chrome.debugger.Debuggee, reason: string): void {
-    if (this._multiTabMode) {
-      this._allTabIds.delete(source.tabId!);
-      debugLog(`Tab ${source.tabId} detached: ${reason}. Remaining tabs: ${this._allTabIds.size}`);
-      if (this._allTabIds.size === 0)
-        this.close('All browser tabs closed');
+    if (this._playwrightTabIds.has(source.tabId!)) {
+      // A playwright-opened tab was closed — just remove it, don't close the session
+      this._playwrightTabIds.delete(source.tabId!);
+      debugLog(`Playwright tab ${source.tabId} detached: ${reason}`);
       return;
     }
     if (source.tabId !== this._debuggee.tabId)
@@ -157,51 +157,41 @@ export class RelayConnection {
       const result: any = await chrome.debugger.sendCommand(this._debuggee, 'Target.getTargetInfo');
       return {
         targetInfo: result?.targetInfo,
+        tabId: this._debuggee.tabId,
       };
     }
-    if (message.method === 'attachToAllTabs') {
-      const allTabs = await chrome.tabs.query({});
-      const regularTabs = allTabs.filter(tab =>
-        tab.id !== undefined &&
-        tab.url &&
-        !['chrome:', 'edge:', 'devtools:', 'chrome-extension:'].some(scheme => tab.url!.startsWith(scheme))
-      );
-      const results = [];
-      for (const tab of regularTabs) {
-        const debuggee: chrome.debugger.Debuggee = { tabId: tab.id! };
-        try {
-          await chrome.debugger.attach(debuggee, '1.3');
-          debugLog(`Attached debugger to tab ${tab.id}: ${tab.url}`);
-        } catch (e: any) {
-          debugLog(`Failed to attach to tab ${tab.id}: ${e.message}`);
-          continue;
-        }
-        let targetInfo: any;
-        try {
-          const result: any = await chrome.debugger.sendCommand(debuggee, 'Target.getTargetInfo');
-          targetInfo = result?.targetInfo;
-        } catch {
-          targetInfo = { tabId: tab.id, url: tab.url, title: tab.title, type: 'page', targetId: String(tab.id) };
-        }
-        this._allTabIds.add(tab.id!);
-        results.push({ tabId: tab.id!, targetInfo });
-      }
-      this._multiTabMode = true;
-      debugLog(`attachToAllTabs: attached to ${results.length} tabs`);
-      return { tabs: results };
+    if (message.method === 'createTab') {
+      // Create a new real browser tab and attach debugger to it
+      const url: string = message.params?.url || 'about:blank';
+      const tab = await chrome.tabs.create({ url, active: true });
+      const tabId = tab.id!;
+      const debuggee: chrome.debugger.Debuggee = { tabId };
+      // Wait briefly for the tab to be ready before attaching
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await chrome.debugger.attach(debuggee, '1.3');
+      debugLog(`Created and attached to new tab ${tabId}: ${url}`);
+      const result: any = await chrome.debugger.sendCommand(debuggee, 'Target.getTargetInfo');
+      const targetInfo = result?.targetInfo || {
+        tabId,
+        url: tab.url || url,
+        title: tab.title || '',
+        type: 'page',
+        targetId: String(tabId),
+      };
+      this._playwrightTabIds.add(tabId);
+      return { tabId, targetInfo };
     }
-    if (!this._debuggee.tabId && !this._multiTabMode)
+    if (!this._debuggee.tabId)
       throw new Error('No tab is connected. Please go to the Playwright MCP extension and select the tab you want to connect to.');
     if (message.method === 'forwardCDPCommand') {
       const { sessionId, method, params, tabId } = message.params;
       debugLog('CDP command:', method, params);
+      // Route to the correct tab: playwright-opened tab by tabId, else initial tab
       let debuggee: chrome.debugger.Debuggee;
-      if (tabId !== undefined && this._allTabIds.has(tabId)) {
+      if (tabId !== undefined && this._playwrightTabIds.has(tabId)) {
         debuggee = { tabId };
-      } else if (this._debuggee.tabId) {
-        debuggee = this._debuggee;
       } else {
-        throw new Error(`No tab found for tabId: ${tabId}`);
+        debuggee = this._debuggee;
       }
       const debuggerSession: chrome.debugger.DebuggerSession = {
         ...debuggee,
