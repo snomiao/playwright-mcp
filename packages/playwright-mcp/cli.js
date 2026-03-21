@@ -47,7 +47,8 @@ if (process.argv.includes('install-browser')) {
 }
 
 const packageJSON = require('./package.json');
-const p = program.version('Version ' + packageJSON.version).name('Playwright MCP');
+const _cmdName = require('path').basename(process.argv[1] || 'playwright-mcp-multi-tab').replace(/\.(js|mjs|cjs)$/, '');
+const p = program.version('Version ' + packageJSON.version).name(_cmdName);
 decorateMCPCommand(p, packageJSON.version)
 
 void program.parseAsync(process.argv);
