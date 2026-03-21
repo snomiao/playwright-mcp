@@ -29,10 +29,14 @@ function _findWorkspaceDir(startDir) {
   }
 }
 const _wsDir = _findWorkspaceDir(process.cwd());
+const _extensionMode = process.argv.includes('--extension');
 if (_wsDir) {
   if (!process.env.PLAYWRIGHT_MCP_OUTPUT_DIR)
     process.env.PLAYWRIGHT_MCP_OUTPUT_DIR = _path.join(_wsDir, '.playwright', 'mcp-output');
-  if (!process.env.PLAYWRIGHT_MCP_USER_DATA_DIR)
+  // In --extension mode, don't override user-data-dir: the relay opens a tab in the
+  // user's existing Chrome (matching by user-data-dir). A workspace-local profile would
+  // spawn a new Chrome window instead of reusing the running one.
+  if (!_extensionMode && !process.env.PLAYWRIGHT_MCP_USER_DATA_DIR)
     process.env.PLAYWRIGHT_MCP_USER_DATA_DIR = _path.join(_wsDir, '.playwright', 'mcp-profile');
 }
 
