@@ -15,6 +15,27 @@
  * limitations under the License.
  */
 
+// Workspace-local storage: if .playwright/ marker exists in the project tree,
+// default output and user-data dirs to workspace-local paths.
+const _path = require('path');
+const _fs = require('fs');
+function _findWorkspaceDir(startDir) {
+  let dir = startDir;
+  for (let i = 0; i < 10; i++) {
+    if (_fs.existsSync(_path.join(dir, '.playwright'))) return dir;
+    const parent = _path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+}
+const _wsDir = _findWorkspaceDir(process.cwd());
+if (_wsDir) {
+  if (!process.env.PLAYWRIGHT_MCP_OUTPUT_DIR)
+    process.env.PLAYWRIGHT_MCP_OUTPUT_DIR = _path.join(_wsDir, '.playwright', 'mcp-output');
+  if (!process.env.PLAYWRIGHT_MCP_USER_DATA_DIR)
+    process.env.PLAYWRIGHT_MCP_USER_DATA_DIR = _path.join(_wsDir, '.playwright', 'mcp-profile');
+}
+
 const { program } = require('playwright-core/lib/utilsBundle');
 const { decorateMCPCommand } = require('playwright-core/lib/tools/mcp/program');
 
