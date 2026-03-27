@@ -1,6 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Playwright MCP Bridge (multi-tab)",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0jSpReou/QtxOtzEEPhDp9xD8YOhdW9+OBwBMFuRBMuTmDhkfocdFELqd0wGSdpIDdmQYnhhn5364TsZICld87P2Fayb7vOezN3FApW7uqmXoN341+njhn29/VjYGRBzGJ2pfv4lmO21X3dmcn7e2ZtQ0VvnHM09Kav4L/5EeFmllF6F94ODqEjrGXJkPLoDVT53H1FW1Sc3H8lXdCRkvcAFTan+EUvrz4jraZzBY6rOIu0nOiZvqGHVgPyXgi4lvR7yfw8AFAxX1zyNZBhJWSQBhrtQEpx7XMAeeDCHwk+Zc6Z6zsOWMOkYZVckICKZqalszOK7LAYUPQI2fdf2JwIDAQAB",
   "version": "0.0.68.3",
   "description": "Share browser tabs with Playwright MCP server (multi-tab fork: Playwright can open and control multiple tabs)",
   "permissions": [
