@@ -147,7 +147,7 @@ const ConnectApp: React.FC = () => {
       });
 
       if (response?.success) {
-        setStatus({ type: 'connected', message: `MCP client "${clientInfo}" connected.` });
+        setStatus({ type: 'connected', message: `MCP client "${clientInfo}" connected. Do not close this tab — it maintains the connection to the browser. Closing it will disconnect the session.` });
       } else {
         setStatus({
           type: 'error',
