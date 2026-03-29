@@ -61,9 +61,10 @@ const ConnectApp: React.FC = () => {
 
       setMcpRelayUrl(relayUrl);
 
+      let info = 'unknown';
       try {
         const client = JSON.parse(params.get('client') || '{}');
-        const info = `${client.name}/${client.version}`;
+        info = `${client.name}/${client.version}`;
         setClientInfo(info);
         setStatus({
           type: 'connecting',
@@ -93,7 +94,7 @@ const ConnectApp: React.FC = () => {
       const token = params.get('token');
       if (token === expectedToken) {
         await connectToMCPRelay(relayUrl);
-        await handleConnectToTab();
+        await handleConnectToTab(undefined, info);
         return;
       }
       if (token) {
@@ -134,7 +135,8 @@ const ConnectApp: React.FC = () => {
       setStatus({ type: 'error', message: 'Failed to load tabs: ' + response.error });
   }, []);
 
-  const handleConnectToTab = useCallback(async (tab?: TabInfo) => {
+  const handleConnectToTab = useCallback(async (tab?: TabInfo, clientInfoOverride?: string) => {
+    const displayName = clientInfoOverride || clientInfo;
     setShowButtons(false);
     setShowTabList(false);
 
@@ -147,17 +149,17 @@ const ConnectApp: React.FC = () => {
       });
 
       if (response?.success) {
-        setStatus({ type: 'connected', message: `MCP client "${clientInfo}" connected. Do not close this tab — it maintains the connection to the browser. Closing it will disconnect the session.` });
+        setStatus({ type: 'connected', message: `MCP client "${displayName}" connected. Do not close this tab — it maintains the connection to the browser. Closing it will disconnect the session.` });
       } else {
         setStatus({
           type: 'error',
-          message: response?.error || `MCP client "${clientInfo}" failed to connect.`
+          message: response?.error || `MCP client "${displayName}" failed to connect.`
         });
       }
     } catch (e) {
       setStatus({
         type: 'error',
-        message: `MCP client "${clientInfo}" failed to connect: ${e}`
+        message: `MCP client "${displayName}" failed to connect: ${e}`
       });
     }
   }, [clientInfo, mcpRelayUrl]);
