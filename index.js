@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * Copyright (c) Microsoft Corporation.
  *
@@ -14,18 +15,5 @@
  * limitations under the License.
  */
 
-import { resolve } from 'path';
-import { defineConfig } from 'vite';
-
-export default defineConfig({
-  build: {
-    lib: {
-      entry: resolve(__dirname, 'src/background.ts'),
-      fileName: 'lib/background',
-      formats: ['es']
-    },
-    outDir: 'dist',
-    emptyOutDir: false,
-    minify: false
-  }
-});
+const { tools } = require('playwright-core/lib/coreBundle');
+module.exports = { createConnection: tools.createConnection };
