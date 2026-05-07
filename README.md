@@ -418,7 +418,7 @@ Playwright MCP server supports following arguments. They can be provided in the 
 | --proxy-server <proxy> | specify proxy server, for example "http://myproxy:3128" or "socks5://myproxy:8080"<br>*env* `PLAYWRIGHT_MCP_PROXY_SERVER` |
 | --sandbox | enable the sandbox for all process types that are normally not sandboxed.<br>*env* `PLAYWRIGHT_MCP_SANDBOX` |
 | --save-session | Whether to save the Playwright MCP session into the output directory.<br>*env* `PLAYWRIGHT_MCP_SAVE_SESSION` |
-| --secrets <path> | path to a file containing secrets in the dotenv format<br>*env* `PLAYWRIGHT_MCP_SECRETS` |
+| --secrets <path> | path to a file containing secrets in the dotenv format<br>*env* `PLAYWRIGHT_MCP_SECRETS_FILE` |
 | --shared-browser-context | reuse the same browser context between all connected HTTP clients.<br>*env* `PLAYWRIGHT_MCP_SHARED_BROWSER_CONTEXT` |
 | --snapshot-mode <mode> | when taking snapshots for responses, specifies the mode to use. Can be "full" or "none". Default is "full".<br>*env* `PLAYWRIGHT_MCP_SNAPSHOT_MODE` |
 | --storage-state <path> | path to the storage state file for isolated sessions.<br>*env* `PLAYWRIGHT_MCP_STORAGE_STATE` |
@@ -452,6 +452,9 @@ Persistent profile is located at the following locations and you can override it
 ```
 
 `{workspace-hash}` is derived from the MCP client's workspace root, so different projects get separate profiles automatically.
+
+> [!IMPORTANT]
+> A persistent profile can only be used by one browser instance at a time, so concurrent MCP clients sharing the same workspace will conflict. To run several clients in parallel, start each additional client with `--isolated` or point it at a distinct `--user-data-dir`.
 
 **Isolated**
 
@@ -1011,7 +1014,7 @@ http.createServer(async (req, res) => {
     - `target` (string, optional): Exact target element reference from the page snapshot, or a unique element selector
     - `filename` (string, optional): Save snapshot to markdown file instead of returning it in the response.
     - `depth` (number, optional): Limit the depth of the snapshot tree
-    - `boxes` (boolean, optional): Include each element's bounding box as [box=x,y,width,height] in the snapshot
+    - `boxes` (boolean, optional): Include each element's bounding box as [box=x,y,width,height] in the snapshot. Coordinates are viewport-relative, in CSS pixels (Element.getBoundingClientRect)
   - Read-only: **true**
 
 <!-- NOTE: This has been generated via update-readme.js -->
